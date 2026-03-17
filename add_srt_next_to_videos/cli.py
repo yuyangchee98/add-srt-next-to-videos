@@ -121,9 +121,15 @@ def main():
             continue
 
         # Transcribe once
+        print(f"  transcribing...", end="\r")
         segments = transcribe(video, language=source_lang)
+        non_empty = sum(1 for s in segments if s["text"].strip())
+        print(f"  transcribed: {non_empty} segments")
 
         # Translate once per target language, cache results
+        def progress(msg, end="\n"):
+            print(msg, end=end, flush=True)
+
         translations = {}
         for target in target_langs:
             needed = any(
@@ -133,6 +139,7 @@ def main():
             if needed:
                 translations[target] = translate_segments(
                     segments, source_lang or "auto", target,
+                    print_progress=progress,
                 )
 
         # Generate output files

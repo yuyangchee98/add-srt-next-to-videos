@@ -78,15 +78,20 @@ def translate_text(text: str, source_lang: str, target_lang: str) -> str:
     return resp.json()["choices"][0]["message"]["content"].strip()
 
 
-def translate_segments(segments: list[dict], source_lang: str, target_lang: str) -> list[dict]:
+def translate_segments(segments: list[dict], source_lang: str, target_lang: str,
+                       print_progress=None) -> list[dict]:
     """Translate segment texts via LLM, preserving timestamps."""
+    non_empty = [seg for seg in segments if seg["text"].strip()]
+    total = len(non_empty)
     translated = []
-    for seg in segments:
+    for idx, seg in enumerate(non_empty, 1):
         text = seg["text"].strip()
-        if not text:
-            continue
+        if print_progress:
+            print_progress(f"  translating to {target_lang}: {idx}/{total}", end="\r")
         t = translate_text(text, source_lang, target_lang)
         translated.append({**seg, "text": t})
+    if print_progress:
+        print_progress(f"  translating to {target_lang}: {total}/{total} done")
     return translated
 
 
