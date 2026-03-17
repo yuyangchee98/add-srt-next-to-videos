@@ -106,7 +106,7 @@ The beauty salon.
 1. **Whisper transcribes** the audio once per video — timestamped segments in the source language
 2. **LLM translates** each segment's text to other languages (only if needed)
 
-Whisper is only used for transcription. All translation goes through the LLM because Whisper's built-in translation is bad (it translated 美容院/beauty salon as "hospital").
+Whisper handles transcription only. All translation goes through your local LLM for better accuracy.
 
 The tool transcribes once and caches the result per video, so `--subs ja,en,ja-en` runs Whisper once and translates to English once, even though two outputs use the English translation.
 
