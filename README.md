@@ -14,6 +14,9 @@ Runs entirely on your Mac — [MLX Whisper](https://github.com/ml-explore/mlx-ex
 ## Install
 
 ```bash
+# Homebrew
+brew install yuyangchee98/tap/add-srt-next-to-videos
+
 # From PyPI
 pip install add-srt-next-to-videos
 
