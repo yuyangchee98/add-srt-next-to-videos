@@ -14,24 +14,29 @@ Runs entirely on your Mac — [MLX Whisper](https://github.com/ml-explore/mlx-ex
 ## Install
 
 ```bash
-# Clone the repo
-git clone https://github.com/yangliu/add-srt-next-to-videos.git
-cd add-srt-next-to-videos
+# From PyPI
+pip install add-srt-next-to-videos
 
-# Copy and edit config
-cp .env.example .env
-# edit .env with your model preferences
+# Or with pipx (isolated install, recommended)
+pipx install add-srt-next-to-videos
 
-# Install as a system-wide command
-pipx install .
+# Or directly from GitHub
+pipx install git+https://github.com/yuyangchee98/add-srt-next-to-videos.git
 ```
 
-After this, `add-srt-next-to-videos` is available anywhere in your terminal.
+After install, create a `.env` file in the directory where you run the command (or your home directory):
+
+```bash
+cp .env.example .env
+# edit .env with your model preferences
+```
 
 To uninstall: `pipx uninstall add-srt-next-to-videos`
 
-For development instead:
+For development:
 ```bash
+git clone https://github.com/yuyangchee98/add-srt-next-to-videos.git
+cd add-srt-next-to-videos
 uv venv && uv pip install -e .
 ```
 

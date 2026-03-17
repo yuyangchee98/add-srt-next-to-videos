@@ -5,12 +5,28 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "add-srt-next-to-videos"
 version = "0.1.0"
-description = "CLI tool that generates .srt subtitle files next to video files using local MLX Whisper, with translation support"
+description = "Generate .srt subtitle files next to video files using local MLX Whisper and LLM translation"
 requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Yang"}]
+readme = "README.md"
+keywords = ["whisper", "subtitles", "srt", "mlx", "transcription", "translation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+]
 dependencies = [
     "mlx-whisper>=0.4",
     "python-dotenv>=1.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/yuyangchee98/add-srt-next-to-videos"
+Source = "https://github.com/yuyangchee98/add-srt-next-to-videos"
 
 [tool.setuptools.packages.find]
 include = ["add_srt_next_to_videos*"]
