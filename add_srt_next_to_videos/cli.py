@@ -3,8 +3,9 @@ import sys
 from pathlib import Path
 
 from .core import (
-    transcribe, translate_segments, segments_to_srt, segments_to_dual_srt,
-    srt_path_for, is_dual, parse_sub_spec, VIDEO_EXTENSIONS,
+    transcribe, translate_segments, romanize_segments,
+    segments_to_srt, segments_to_dual_srt, segments_to_triple_srt,
+    srt_path_for, parse_sub_spec, spec_target_lang, VIDEO_EXTENSIONS,
     WHISPER_MODEL, LLM_URL, LLM_MODEL,
 )
 
@@ -38,8 +39,14 @@ def main():
   # Dual-language subtitles (source + translation in one file)
   add-srt-next-to-videos ./videos -l ja --subs ja-en
 
+  # Japanese with romaji
+  add-srt-next-to-videos ./videos -l ja --subs ja-romaji
+
+  # Japanese + romaji + English translation
+  add-srt-next-to-videos ./videos -l ja --subs ja-romaji-en
+
   # Everything at once
-  add-srt-next-to-videos ./videos -l ja --subs ja,en,ja-en,ja-zh
+  add-srt-next-to-videos ./videos -l ja --subs ja,en,ja-en,ja-romaji,ja-romaji-en
 """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -59,6 +66,7 @@ def main():
         help="Comma-separated subtitle specs to generate. "
              "Single language: ja, en, zh. "
              "Dual-language: ja-en, ja-zh (source on top, translation below). "
+             "Romaji: romaji, ja-romaji, ja-romaji-en (Japanese romanization). "
              "Source language is transcribed via Whisper; others translated via LLM.",
     )
     parser.add_argument(
@@ -83,26 +91,26 @@ def main():
     # Default to source language transcription if no --subs given
     sub_specs = [s.strip() for s in args.subs.split(",")] if args.subs else [source_lang or "auto"]
 
-    # Check if any spec needs LLM (any target != source)
-    needs_llm = any(
-        (is_dual(s) or s != source_lang) and s != "auto"
-        for s in sub_specs
-    )
-
     # Collect all target languages we need to translate to (avoid duplicating work)
     target_langs = set()
+    needs_romaji = False
     for spec in sub_specs:
-        if is_dual(spec):
-            _, target = parse_sub_spec(spec)
+        target = spec_target_lang(spec, source_lang)
+        if target:
             target_langs.add(target)
-        elif spec != source_lang and spec != "auto":
-            target_langs.add(spec)
+        _, romaji, _ = parse_sub_spec(spec)
+        if romaji:
+            needs_romaji = True
+
+    needs_llm = len(target_langs) > 0
 
     print(f"Found {len(videos)} video(s)")
     print(f"Whisper: {WHISPER_MODEL}")
     print(f"Subtitles: {', '.join(sub_specs)}")
     if needs_llm:
         print(f"LLM: {LLM_URL} ({LLM_MODEL})")
+    if needs_romaji:
+        print(f"Romaji: enabled (pykakasi)")
     print()
 
     for i, video in enumerate(videos, 1):
@@ -126,6 +134,12 @@ def main():
         non_empty = sum(1 for s in segments if s["text"].strip())
         print(f"  transcribed: {non_empty} segments")
 
+        # Romanize once if any spec needs it
+        romaji_segs = None
+        if needs_romaji:
+            romaji_segs = romanize_segments(segments)
+            print(f"  romanized: {len(romaji_segs)} segments")
+
         # Translate once per target language, cache results
         def progress(msg, end="\n"):
             print(msg, end=end, flush=True)
@@ -133,7 +147,7 @@ def main():
         translations = {}
         for target in target_langs:
             needed = any(
-                (is_dual(s) and parse_sub_spec(s)[1] == target) or s == target
+                spec_target_lang(s, source_lang) == target
                 for s in specs_to_do
             )
             if needed:
@@ -146,13 +160,26 @@ def main():
         for spec in specs_to_do:
             srt_path = srt_path_for(video, spec)
             try:
-                if is_dual(spec):
-                    _, target = parse_sub_spec(spec)
+                source, romaji, target = parse_sub_spec(spec)
+
+                if romaji and target:
+                    # Triple: ja-romaji-en
+                    srt_content = segments_to_triple_srt(segments, romaji_segs, translations[target])
+                elif romaji and source:
+                    # Dual: ja-romaji
+                    srt_content = segments_to_dual_srt(segments, romaji_segs)
+                elif romaji:
+                    # Single: romaji
+                    srt_content = segments_to_srt(romaji_segs)
+                elif target:
+                    # Dual: ja-en
                     srt_content = segments_to_dual_srt(segments, translations[target])
-                elif spec == source_lang or spec == "auto":
+                elif source == source_lang or spec == "auto":
+                    # Single source: ja
                     srt_content = segments_to_srt(segments)
                 else:
-                    srt_content = segments_to_srt(translations[spec])
+                    # Single translated: en
+                    srt_content = segments_to_srt(translations[source])
 
                 srt_path.write_text(srt_content, encoding="utf-8")
                 print(f"  {spec}: {srt_path.name}")
